@@ -18,36 +18,82 @@ class MainViewModel : ViewModel() {
     var countTime2 by mutableStateOf(0)
         private set
 
-    private var job: Job? = null
+    private var job1: Job? = null
+    private var job2: Job? = null
 
     fun startCounters() {
-        job = viewModelScope.launch {
-            countTime1 = 0
-            countTime2 = 0
-            resultState = "Ejecutando Contador 1..."
-            runFirstCounter()
-            resultState = "Ejecutando Contador 2..."
-            runSecondCounter()
+        val N = 2 // Definimos un valor de N
+        val repetitions = listOf(N, 2 * N, 3 * N, 4 * N, 5 * N)
+
+        viewModelScope.launch {
+            for (repetition in repetitions) {
+                resultState = "Ejecutando $repetition veces..."
+
+                val sequentialTime = measureTime {
+                    runSequentialCounters(repetition)
+                }
+                println("Tiempo secuencial para $repetition repeticiones: $sequentialTime")
+
+                val concurrentTime = measureTime {
+                    runConcurrentCounters(repetition)
+                }
+                println("Tiempo concurrente para $repetition repeticiones: $concurrentTime")
+            }
+
             resultState = "Finalizado"
         }
     }
 
     fun cancelCounters() {
-        job?.cancel()
+        job1?.cancel()
+        job2?.cancel()
         resultState = "Contadores Cancelados"
     }
 
-    private suspend fun runFirstCounter() {
-        for (i in 1..5) {
-            delay(1000)
-            countTime1 = i
+    private suspend fun runSequentialCounters(repetitions: Int) {
+        countTime1 = 0
+        countTime2 = 0
+
+        for (i in 1..repetitions) {
+            runFirstCounter()
+            runSecondCounter()
         }
     }
 
-    private suspend fun runSecondCounter() {
-        for (i in 1..5) {
-            delay(1000)
-            countTime2 = i
+    private suspend fun runConcurrentCounters(repetitions: Int) {
+        countTime1 = 0
+        countTime2 = 0
+
+        job1 = viewModelScope.launch {
+            for (i in 1..repetitions) {
+                runFirstCounter()
+            }
         }
+
+        job2 = viewModelScope.launch {
+            for (i in 1..repetitions) {
+                runSecondCounter()
+            }
+        }
+
+        job1?.join()
+        job2?.join()
     }
+
+    private suspend fun runFirstCounter() {
+        delay(1000)
+        countTime1++
+    }
+
+    private suspend fun runSecondCounter() {
+        delay(1000)
+        countTime2++
+    }
+
+    private inline fun measureTime(action: () -> Unit): Long {
+        val startTime = System.nanoTime()
+        action()
+        val endTime = System.nanoTime()
+        return endTime - startTime
+        }
 }
