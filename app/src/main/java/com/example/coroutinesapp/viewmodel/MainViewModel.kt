@@ -6,6 +6,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.*
+import java.io.IOException
 
 class MainViewModel : ViewModel() {
 
@@ -18,82 +19,69 @@ class MainViewModel : ViewModel() {
     var countTime2 by mutableStateOf(0)
         private set
 
-    private var job1: Job? = null
-    private var job2: Job? = null
+    private var job: Job? = null
+
+    private val sharedLock = Any()
+    private var isVariableBeingUsed = false
 
     fun startCounters() {
-        val N = 2 // Definimos un valor de N
-        val repetitions = listOf(N, 2 * N, 3 * N, 4 * N, 5 * N)
+        job = viewModelScope.launch {
+            countTime1 = 0
+            countTime2 = 0
+            resultState = "Ejecutando Contador 1..."
 
-        viewModelScope.launch {
-            for (repetition in repetitions) {
-                resultState = "Ejecutando $repetition veces..."
+            val job1 = launch { runFirstCounter() }
+            val job2 = launch { runSecondCounter() }
 
-                val sequentialTime = measureTime {
-                    runSequentialCounters(repetition)
-                }
-                println("Tiempo secuencial para $repetition repeticiones: $sequentialTime")
-
-                val concurrentTime = measureTime {
-                    runConcurrentCounters(repetition)
-                }
-                println("Tiempo concurrente para $repetition repeticiones: $concurrentTime")
-            }
+            job1.join()
+            job2.join()
 
             resultState = "Finalizado"
         }
     }
 
     fun cancelCounters() {
-        job1?.cancel()
-        job2?.cancel()
+        job?.cancel()
         resultState = "Contadores Cancelados"
     }
 
-    private suspend fun runSequentialCounters(repetitions: Int) {
-        countTime1 = 0
-        countTime2 = 0
-
-        for (i in 1..repetitions) {
-            runFirstCounter()
-            runSecondCounter()
-        }
-    }
-
-    private suspend fun runConcurrentCounters(repetitions: Int) {
-        countTime1 = 0
-        countTime2 = 0
-
-        job1 = viewModelScope.launch {
-            for (i in 1..repetitions) {
-                runFirstCounter()
-            }
-        }
-
-        job2 = viewModelScope.launch {
-            for (i in 1..repetitions) {
-                runSecondCounter()
-            }
-        }
-
-        job1?.join()
-        job2?.join()
-    }
-
     private suspend fun runFirstCounter() {
-        delay(1000)
-        countTime1++
+        for (i in 1..5) {
+            delay(1000)
+
+            try {
+                writeToSharedVariable("Contador 1: $i")
+            } catch (e: IOException) {
+                println("Error en el hilo 1: ${e.message}")
+            }
+
+            countTime1 = i
+        }
     }
 
     private suspend fun runSecondCounter() {
-        delay(1000)
-        countTime2++
+        for (i in 1..5) {
+            delay(1000)
+
+            try {
+                writeToSharedVariable("Contador 2: $i")
+            } catch (e: IOException) {
+                println("Error en el hilo 2: ${e.message}")
+            }
+
+            countTime2 = i
+        }
     }
 
-    private inline fun measureTime(action: () -> Unit): Long {
-        val startTime = System.nanoTime()
-        action()
-        val endTime = System.nanoTime()
-        return endTime - startTime
+    private fun writeToSharedVariable(data: String) {
+        synchronized(sharedLock) {
+            if (isVariableBeingUsed) {
+                throw IOException("Acceso simultáneo a la variable compartida.")
+            } else {
+                isVariableBeingUsed = true
+                println(data)
+                isVariableBeingUsed = false
+            }
         }
+    }
 }
