@@ -5,13 +5,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.example.coroutinesapp.viewmodel.MainViewModel
 
@@ -27,20 +26,16 @@ fun CoroutinesApp(viewModel: MainViewModel, modifier: Modifier = Modifier) {
         Text(viewModel.resultState)
         Spacer(modifier = Modifier.height(30.dp))
 
-        Button(onClick = {
-            viewModel.startCounters()
-        }) {
-            Text("Iniciar Contadores")
-        }
 
+        Switch(  checked = viewModel.resultState == "Ejecutando Contador 1" || viewModel.resultState == "Ejecutando Contador 2",
+            onCheckedChange = { isChecked ->
+                if (isChecked) {
+                    viewModel.startCounters()
+                } else {
+                    viewModel.cancelCounters()
+                }
+            }
+        )
         Spacer(modifier = Modifier.height(20.dp))
-
-        Button(onClick = {
-            viewModel.cancelCounters()
-        },
-            colors = ButtonDefaults.buttonColors(Color.Red)
-        ) {
-            Text("Cancelar Contadores")
         }
-    }
 }
