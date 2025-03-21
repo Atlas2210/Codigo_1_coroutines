@@ -12,25 +12,10 @@ class MainViewModel : ViewModel() {
     var resultState by mutableStateOf("")
         private set
 
-    var sequentialTime by mutableStateOf(0L)
-        private set
-
-    var concurrentTime by mutableStateOf(0L)
-        private set
-
     var countTime1 by mutableStateOf(0)
         private set
 
     var countTime2 by mutableStateOf(0)
-        private set
-
-    var countTime3 by mutableStateOf(0)
-        private set
-
-    var countTime4 by mutableStateOf(0)
-        private set
-
-    var countTime5 by mutableStateOf(0)
         private set
 
     private var job: Job? = null
@@ -45,7 +30,6 @@ class MainViewModel : ViewModel() {
             runSecondCounter()
             resultState = "Finalizado"
         }
-
     }
 
     fun cancelCounters() {
